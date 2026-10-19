@@ -1,0 +1,310 @@
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const holdButton = document.getElementById("holdButton");
+const startScreen = document.getElementById("startScreen");
+const content = document.getElementById("content");
+
+const mainText = document.getElementById("mainText");
+const loveText = document.getElementById("loveText");
+const gallery = document.getElementById("gallery");
+const nextButton = document.getElementById("nextButton");
+
+const music = document.getElementById("music");
+
+let particles = [];
+let holding = false;
+let started = false;
+let startTimer = null;
+
+let width;
+let height;
+
+function resize() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+
+/* =========================
+   TẠO HẠT
+========================= */
+
+for (let i = 0; i < 500; i++) {
+
+  particles.push({
+    x: Math.random() * width,
+    y: Math.random() * height,
+
+    targetX: 0,
+    targetY: 0,
+
+    size: Math.random() * 2 + 1,
+    alpha: Math.random() * 0.7 + 0.3,
+    speed: Math.random() * 0.5 + 0.2,
+
+    gathered: false
+  });
+}
+
+
+/* =========================
+   VẼ HẠT
+========================= */
+
+function drawParticles() {
+
+  ctx.clearRect(0, 0, width, height);
+
+  particles.forEach(p => {
+
+    if (!p.gathered) {
+
+      p.y -= p.speed;
+
+      if (p.y < -10) {
+        p.y = height + 10;
+      }
+
+    } else {
+
+      p.x += (p.targetX - p.x) * 0.08;
+      p.y += (p.targetY - p.y) * 0.08;
+    }
+
+    if (p.alpha <= 0) return;
+
+    ctx.beginPath();
+
+    ctx.arc(
+      p.x,
+      p.y,
+      p.size,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fillStyle =
+      rgba(255, 70, 170, ${p.alpha});
+
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = "#ff4fa3";
+
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+  });
+
+  requestAnimationFrame(drawParticles);
+}
+
+drawParticles();
+
+
+/* =========================
+   TRÁI TIM
+========================= */
+
+function getHeartPositions() {
+
+  const positions = [];
+
+  const centerX = width / 2;
+  const centerY = height * 0.30;
+
+  const scale =
+    Math.min(width, height) * 0.025;
+
+  for (let i = 0; i < 500; i++) {
+
+    const t =
+      (i / 500) * Math.PI * 2;
+
+    const heartX =
+      16 * Math.pow(Math.sin(t), 3);
+
+    const heartY =
+      13 * Math.cos(t)
+      - 5 * Math.cos(2 * t)
+      - 2 * Math.cos(3 * t)
+      - Math.cos(4 * t);
+
+    const fill =
+      0.25 +
+      Math.sqrt(Math.random()) * 0.75;
+
+    positions.push({
+      x:
+        centerX +
+        heartX * scale * fill,
+
+      y:
+        centerY -
+        heartY * scale * fill
+    });
+  }
+
+  return positions;
+}
+
+
+/* =========================
+   GOM HẠT
+========================= */
+
+function gatherParticles() {
+
+  const positions = getHeartPositions();
+
+  if (!positions.length) return;
+
+  particles.forEach((p, i) => {
+
+    const index = Math.floor(
+      i * positions.length / particles.length
+    );
+
+    const target = positions[
+      Math.min(index, positions.length - 1)
+    ];
+
+    p.targetX = target.x;
+    p.targetY = target.y;
+
+    p.gathered = true;
+  });
+
+  setTimeout(() => {
+
+    particles.forEach(p => {
+      p.alpha = 0;
+    });
+
+    mainText.style.opacity = "1";
+
+  }, 3000);
+}
+
+
+/* =========================
+   BẮT ĐẦU
+========================= */
+
+function startHold() {
+
+  if (started) return;
+
+  holding = true;
+
+  holdButton.innerText =
+    "ĐANG BẮT ĐẦU... ❤️";
+
+  if (music.src) {
+    music.play().catch(() => {});
+  }
+
+  startTimer = setTimeout(() => {
+
+    if (!holding) return;
+
+    started = true;
+
+    gatherParticles();
+
+    setTimeout(() => {
+
+      startScreen.style.opacity = "0";
+
+      setTimeout(() => {
+
+        startScreen.style.display = "none";
+
+        content.style.display = "flex";
+
+        setTimeout(() => {
+
+          loveText.style.opacity = "1";
+
+          loveText.style.transform =
+            "translateY(0)";
+
+        }, 1800);
+
+        setTimeout(() => {
+
+          gallery.style.opacity = "1";
+
+          gallery.style.transform =
+            "scale(1)";
+
+        }, 3500);
+
+        setTimeout(() => {
+
+          nextButton.style.opacity = "1";
+
+        }, 5500);
+
+      }, 1000);
+
+    }, 2500);
+
+  }, 1200);
+}
+
+
+/* =========================
+   THẢ NÚT
+========================= */
+
+function stopHold() {
+
+  holding = false;
+
+  if (!started) {
+
+    clearTimeout(startTimer);
+
+    holdButton.innerText =
+      "GIỮ ĐỂ BẮT ĐẦU ❤️";
+  }
+}
+
+
+/* =========================
+   NÚT GIỮ
+========================= */
+
+holdButton.addEventListener(
+  "pointerdown",
+  startHold
+);
+
+holdButton.addEventListener(
+  "pointerup",
+  stopHold
+);
+
+holdButton.addEventListener(
+  "pointerleave",
+  stopHold
+);
+
+
+/* =========================
+   NÚT TIẾP
+========================= */
+
+nextButton.addEventListener(
+  "click",
+  () => {
+
+    alert(
+      "Đây là nơi phần tiếp theo sẽ xuất hiện ❤️"
+    );
+
+  }
+);
